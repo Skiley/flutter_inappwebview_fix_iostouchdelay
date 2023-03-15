@@ -1,3 +1,7 @@
+## 0.0.3
+
+Fix iOS plugin.
+
 ## 0.0.2
 
 Update README and fix iOS podspec.
