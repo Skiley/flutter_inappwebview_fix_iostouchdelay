@@ -1,7 +1,3 @@
-## 0.0.2-0.0.4
+## 0.1.0
 
-Fixing iOS build.
-
-## 0.0.1
-
-Initial base fork, including the iOS touch delay dfix.
+Base fork including iOS touch delay fix. Based on flutter_inappwebview **v6.0.0-beta.22** (2022-12-15).
