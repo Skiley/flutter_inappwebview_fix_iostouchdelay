@@ -208,7 +208,7 @@ public class InAppWebView: WKWebView, UIScrollViewDelegate, WKUIDelegate,
     }
     
     public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        /* lastTouchPoint = point
+        lastTouchPoint = point
         lastTouchPointTimestamp = Int64(Date().timeIntervalSince1970 * 1000)
         SharedLastTouchPointTimestamp[self] = lastTouchPointTimestamp
         
@@ -234,7 +234,7 @@ public class InAppWebView: WKWebView, UIScrollViewDelegate, WKUIDelegate,
                     UIMenuController.shared.menuItems!.append(item)
                 }
             }
-        } */
+        }
 
         let view = super.hitTest(point, with: event)
         let gestureRecognizers = self.superview?.superview?.gestureRecognizers ?? []
