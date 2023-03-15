@@ -1,3 +1,9 @@
+# ⚠️ ATTENTION! ⚠️
+
+This is a fork of the great library [flutter_inappwebview](https://github.com/pichillilorenzo/flutter_inappwebview) which fixes a touch delay that happens exclusively on iOS devices. Refer to the official library for documentation, latest updates, etc.
+
+Issues related to the fixed touch delay: [#216](https://github.com/pichillilorenzo/flutter_inappwebview/issues/216) [#1268](https://github.com/pichillilorenzo/flutter_inappwebview/issues/1268) [#94325](https://github.com/flutter/flutter/issues/94325).
+
 <div align="center">
 
 # Flutter InAppWebView Plugin [![Share on Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Flutter%20InAppBrowser%20plugin!&url=https://github.com/pichillilorenzo/flutter_inappwebview&hashtags=flutter,flutterio,dart,dartlang,webview) [![Share on Facebook](https://img.shields.io/badge/share-facebook-blue.svg?longCache=true&style=flat&colorB=%234267b2)](https://www.facebook.com/sharer/sharer.php?u=https%3A//github.com/pichillilorenzo/flutter_inappwebview)
