@@ -3819,7 +3819,7 @@ class InAppWebViewController {
   ///- iOS
   ///- MacOS
   static Future<String> get tRexRunnerHtml async => await rootBundle.loadString(
-      'packages/flutter_inappwebview/assets/t_rex_runner/t-rex.html');
+      'packages/flutter_inappwebview_fix_iostouchdelay/assets/t_rex_runner/t-rex.html');
 
   ///Gets the css of the Chromium's t-rex runner game. Used in combination with [tRexRunnerHtml].
   ///
@@ -3828,7 +3828,7 @@ class InAppWebViewController {
   ///- iOS
   ///- MacOS
   static Future<String> get tRexRunnerCss async => await rootBundle.loadString(
-      'packages/flutter_inappwebview/assets/t_rex_runner/t-rex.css');
+      'packages/flutter_inappwebview_fix_iostouchdelay/assets/t_rex_runner/t-rex.css');
 
   ///Used internally.
   MethodChannel getChannel() {
