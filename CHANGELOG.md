@@ -1,11 +1,7 @@
-## 0.0.3
+## 0.0.2-0.0.4
 
-Fix iOS plugin.
-
-## 0.0.2
-
-Update README and fix iOS podspec.
+Fixing iOS build.
 
 ## 0.0.1
 
-Initial base fork, including the iOS touch delay fix.
+Initial base fork, including the iOS touch delay dfix.
