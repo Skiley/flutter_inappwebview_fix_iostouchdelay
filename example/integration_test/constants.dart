@@ -1,4 +1,4 @@
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_inappwebview_fix_iostouchdelay/flutter_inappwebview_fix_iostouchdelay.dart';
 
 final TEST_URL_ABOUT_BLANK = WebUri('about:blank');
 final TEST_CROSS_PLATFORM_URL_1 = WebUri('https://flutter.dev/');

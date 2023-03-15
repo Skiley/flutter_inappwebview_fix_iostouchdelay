@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/services.dart';
-import 'package:flutter_inappwebview/src/web_uri.dart';
+import 'package:flutter_inappwebview_fix_iostouchdelay/src/web_uri.dart';
 import 'dart:html';
 import 'dart:js' as js;
 

@@ -8,8 +8,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter_inappwebview/src/in_app_webview/headless_in_app_webview.dart';
-import 'package:flutter_inappwebview/src/util.dart';
+import 'package:flutter_inappwebview_fix_iostouchdelay/src/in_app_webview/headless_in_app_webview.dart';
+import 'package:flutter_inappwebview_fix_iostouchdelay/src/util.dart';
 
 import '../find_interaction/find_interaction_controller.dart';
 import '../web/web_platform_manager.dart';
