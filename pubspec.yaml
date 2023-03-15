@@ -1,4 +1,4 @@
-name: flutter_inappwebview
+name: flutter_inappwebview_fix_iostouchdelay
 description: A Flutter plugin that allows you to add an inline webview, to use an headless webview, and to open an in-app browser window.
 version: 6.0.0-beta.22
 homepage: https://inappwebview.dev/
