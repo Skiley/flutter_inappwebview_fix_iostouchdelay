@@ -14,14 +14,13 @@ import SafariServices
 
 public class ChromeSafariBrowserManager: ChannelDelegate {
     static let METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_chromesafaribrowser"
-    static var registrar: FlutterPluginRegistrar?
-    static var browsers: [String: SafariViewController?] = [:]
-    @available(iOS 15.0, *)
-    static var prewarmingTokens: [String: SFSafariViewController.PrewarmingToken?] = [:]
+    var plugin: SwiftFlutterPlugin?
+    var browsers: [String: SafariViewController?] = [:]
+    var prewarmingTokens: [String: Any?] = [:]
     
-    init(registrar: FlutterPluginRegistrar) {
-        super.init(channel: FlutterMethodChannel(name: ChromeSafariBrowserManager.METHOD_CHANNEL_NAME, binaryMessenger: registrar.messenger()))
-        ChromeSafariBrowserManager.registrar = registrar
+    init(plugin: SwiftFlutterPlugin) {
+        super.init(channel: FlutterMethodChannel(name: ChromeSafariBrowserManager.METHOD_CHANNEL_NAME, binaryMessenger: plugin.registrar!.messenger()))
+        self.plugin = plugin
     }
     
     public override func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -61,7 +60,7 @@ public class ChromeSafariBrowserManager: ChannelDelegate {
                     }
                     let prewarmingToken = SFSafariViewController.prewarmConnections(to: URLs)
                     let prewarmingTokenId = NSUUID().uuidString
-                    ChromeSafariBrowserManager.prewarmingTokens[prewarmingTokenId] = prewarmingToken
+                    prewarmingTokens[prewarmingTokenId] = prewarmingToken
                     result([
                         "id": prewarmingTokenId
                     ])
@@ -72,9 +71,9 @@ public class ChromeSafariBrowserManager: ChannelDelegate {
                 if #available(iOS 15.0, *) {
                     let prewarmingToken = arguments!["prewarmingToken"] as! [String:Any?]
                     if let prewarmingTokenId = prewarmingToken["id"] as? String,
-                       let prewarmingToken = ChromeSafariBrowserManager.prewarmingTokens[prewarmingTokenId] {
+                       let prewarmingToken = prewarmingTokens[prewarmingTokenId] as? SFSafariViewController.PrewarmingToken? {
                         prewarmingToken?.invalidate()
-                        ChromeSafariBrowserManager.prewarmingTokens[prewarmingTokenId] = nil
+                        prewarmingTokens[prewarmingTokenId] = nil
                     }
                     result(true)
                 } else {
@@ -89,7 +88,7 @@ public class ChromeSafariBrowserManager: ChannelDelegate {
     public func open(id: String, url: String, settings: [String: Any?], menuItemList: [[String: Any]], result: @escaping FlutterResult) {
         let absoluteUrl = URL(string: url)!.absoluteURL
         
-        if #available(iOS 9.0, *) {
+        if #available(iOS 9.0, *), let plugin = plugin {
             
             if let flutterViewController = UIApplication.shared.delegate?.window.unsafelyUnwrapped?.rootViewController {
                 // flutterViewController could be casted to FlutterViewController if needed
@@ -101,11 +100,11 @@ public class ChromeSafariBrowserManager: ChannelDelegate {
                 
                 if #available(iOS 11.0, *) {
                     let config = SFSafariViewController.Configuration()
-                    safari = SafariViewController(id: id, url: absoluteUrl, configuration: config,
+                    safari = SafariViewController(plugin: plugin, id: id, url: absoluteUrl, configuration: config,
                                                   menuItemList: menuItemList, safariSettings: safariSettings)
                 } else {
                     // Fallback on earlier versions
-                    safari = SafariViewController(id: id, url: absoluteUrl, entersReaderIfAvailable: safariSettings.entersReaderIfAvailable,
+                    safari = SafariViewController(plugin: plugin, id: id, url: absoluteUrl, entersReaderIfAvailable: safariSettings.entersReaderIfAvailable,
                                                   menuItemList: menuItemList, safariSettings: safariSettings)
                 }
                 
@@ -115,7 +114,7 @@ public class ChromeSafariBrowserManager: ChannelDelegate {
                     result(true)
                 }
                 
-                ChromeSafariBrowserManager.browsers[id] = safari
+                browsers[id] = safari
             }
             return
         }
@@ -125,19 +124,22 @@ public class ChromeSafariBrowserManager: ChannelDelegate {
     
     public override func dispose() {
         super.dispose()
-        ChromeSafariBrowserManager.registrar = nil
-        let browsers = ChromeSafariBrowserManager.browsers.values
-        browsers.forEach { (browser: SafariViewController?) in
+        let browserValues = browsers.values
+        browserValues.forEach { (browser: SafariViewController?) in
             browser?.close(result: nil)
             browser?.dispose()
         }
-        ChromeSafariBrowserManager.browsers.removeAll()
+        browsers.removeAll()
         if #available(iOS 15.0, *) {
-            ChromeSafariBrowserManager.prewarmingTokens.values.forEach { (prewarmingToken: SFSafariViewController.PrewarmingToken?) in
-                prewarmingToken?.invalidate()
+            let prewarmingTokensValues = prewarmingTokens.values
+            prewarmingTokensValues.forEach { (prewarmingToken: Any?) in
+                if let prewarmingToken = prewarmingToken as? SFSafariViewController.PrewarmingToken? {
+                    prewarmingToken?.invalidate()
+                }
             }
-            ChromeSafariBrowserManager.prewarmingTokens.removeAll()
+            prewarmingTokens.removeAll()
         }
+        plugin = nil
     }
     
     deinit {

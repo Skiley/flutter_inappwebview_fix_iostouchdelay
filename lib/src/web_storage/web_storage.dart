@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../in_app_webview/in_app_webview_controller.dart';
 import '../types/main.dart';
+import 'web_storage_item.dart';
 
 ///Class that provides access to the JavaScript [Web Storage API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API): `window.sessionStorage` and `window.localStorage`.
 ///It used by [InAppWebViewController.webStorage].
@@ -19,39 +20,18 @@ class WebStorage {
   SessionStorage sessionStorage;
 
   WebStorage({required this.localStorage, required this.sessionStorage});
-}
 
-///Class that represents a single web storage item of the JavaScript `window.sessionStorage` and `window.localStorage` objects.
-class WebStorageItem {
-  ///Item key.
-  String? key;
-
-  ///Item value.
-  dynamic value;
-
-  WebStorageItem({this.key, this.value});
-
-  Map<String, dynamic> toMap() {
-    return {
-      "key": key,
-      "value": value,
-    };
-  }
-
-  Map<String, dynamic> toJson() {
-    return this.toMap();
-  }
-
-  @override
-  String toString() {
-    return toMap().toString();
+  ///Disposes the web storage.
+  void dispose() {
+    localStorage.dispose();
+    sessionStorage.dispose();
   }
 }
 
 ///Class that provides methods to manage the JavaScript [Storage](https://developer.mozilla.org/en-US/docs/Web/API/Storage) object.
 ///It is used by [LocalStorage] and [SessionStorage].
 class Storage {
-  late InAppWebViewController _controller;
+  InAppWebViewController? _controller;
 
   ///The web storage type: `window.sessionStorage` or `window.localStorage`.
   WebStorageType webStorageType;
@@ -69,7 +49,7 @@ class Storage {
   ///- iOS
   ///- Web
   Future<int?> length() async {
-    var result = await _controller.evaluateJavascript(source: """
+    var result = await _controller?.evaluateJavascript(source: """
     window.$webStorageType.length;
     """);
     return result != null ? int.parse(json.decode(result)) : null;
@@ -85,7 +65,7 @@ class Storage {
   ///- Web
   Future<void> setItem({required String key, required dynamic value}) async {
     var encodedValue = json.encode(value);
-    await _controller.evaluateJavascript(source: """
+    await _controller?.evaluateJavascript(source: """
     window.$webStorageType.setItem("$key", ${value is String ? encodedValue : "JSON.stringify($encodedValue)"});
     """);
   }
@@ -99,7 +79,7 @@ class Storage {
   ///- iOS
   ///- Web
   Future<dynamic> getItem({required String key}) async {
-    var itemValue = await _controller.evaluateJavascript(source: """
+    var itemValue = await _controller?.evaluateJavascript(source: """
     window.$webStorageType.getItem("$key");
     """);
 
@@ -123,7 +103,7 @@ class Storage {
   ///- iOS
   ///- Web
   Future<void> removeItem({required String key}) async {
-    await _controller.evaluateJavascript(source: """
+    await _controller?.evaluateJavascript(source: """
     window.$webStorageType.removeItem("$key");
     """);
   }
@@ -140,7 +120,7 @@ class Storage {
     var webStorageItems = <WebStorageItem>[];
 
     List<Map<dynamic, dynamic>>? items =
-        (await _controller.evaluateJavascript(source: """
+        (await _controller?.evaluateJavascript(source: """
 (function() {
   var webStorageItems = [];
   for(var i = 0; i < window.$webStorageType.length; i++){
@@ -177,7 +157,7 @@ class Storage {
   ///- iOS
   ///- Web
   Future<void> clear() async {
-    await _controller.evaluateJavascript(source: """
+    await _controller?.evaluateJavascript(source: """
     window.$webStorageType.clear();
     """);
   }
@@ -192,10 +172,15 @@ class Storage {
   ///- iOS
   ///- Web
   Future<String> key({required int index}) async {
-    var result = await _controller.evaluateJavascript(source: """
+    var result = await _controller?.evaluateJavascript(source: """
     window.$webStorageType.key($index);
     """);
     return result != null ? json.decode(result) : null;
+  }
+
+  ///Disposes the storage.
+  void dispose() {
+    _controller = null;
   }
 }
 

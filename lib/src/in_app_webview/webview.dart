@@ -5,7 +5,7 @@ import 'dart:ui';
 import '../find_interaction/find_interaction_controller.dart';
 import '../pull_to_refresh/pull_to_refresh_controller.dart';
 
-import '../context_menu.dart';
+import '../context_menu/context_menu.dart';
 import '../types/main.dart';
 
 import '../web_uri.dart';
@@ -1191,12 +1191,6 @@ abstract class WebView {
   ///{@endtemplate}
   final FindInteractionController? findInteractionController;
 
-  ///{@template flutter_inappwebview.WebView.implementation}
-  ///Represents the WebView native implementation to be used.
-  ///The default value is [WebViewImplementation.NATIVE].
-  ///{@endtemplate}
-  final WebViewImplementation implementation;
-
   ///{@macro flutter_inappwebview.WebView}
   WebView(
       {this.windowId,
@@ -1314,6 +1308,5 @@ abstract class WebView {
       this.contextMenu,
       this.initialUserScripts,
       this.pullToRefreshController,
-      this.findInteractionController,
-      this.implementation = WebViewImplementation.NATIVE});
+      this.findInteractionController});
 }

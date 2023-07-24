@@ -15,15 +15,19 @@ public class WebMessageListener : FlutterMethodCallDelegate {
     var allowedOriginRules: Set<String>
     var channelDelegate: WebMessageListenerChannelDelegate?
     weak var webView: InAppWebView?
+    var plugin: SwiftFlutterPlugin?
     
-    public init(id: String, jsObjectName: String, allowedOriginRules: Set<String>) {
+    public init(plugin: SwiftFlutterPlugin, id: String, jsObjectName: String, allowedOriginRules: Set<String>) {
         self.id = id
+        self.plugin = plugin
         self.jsObjectName = jsObjectName
         self.allowedOriginRules = allowedOriginRules
         super.init()
-        let channel = FlutterMethodChannel(name: WebMessageListener.METHOD_CHANNEL_NAME_PREFIX + self.id + "_" + self.jsObjectName,
-                                       binaryMessenger: SwiftFlutterPlugin.instance!.registrar!.messenger())
-        self.channelDelegate = WebMessageListenerChannelDelegate(webMessageListener: self, channel: channel)
+        if let registrar = plugin.registrar {
+            let channel = FlutterMethodChannel(name: WebMessageListener.METHOD_CHANNEL_NAME_PREFIX + self.id + "_" + self.jsObjectName,
+                                               binaryMessenger: registrar.messenger())
+            self.channelDelegate = WebMessageListenerChannelDelegate(webMessageListener: self, channel: channel)
+        }
     }
     
     public func assertOriginRulesValid() throws {
@@ -114,11 +118,12 @@ public class WebMessageListener : FlutterMethodCallDelegate {
         }
     }
     
-    public static func fromMap(map: [String:Any?]?) -> WebMessageListener? {
+    public static func fromMap(plugin: SwiftFlutterPlugin, map: [String:Any?]?) -> WebMessageListener? {
         guard let map = map else {
             return nil
         }
         return WebMessageListener(
+            plugin: plugin,
             id: map["id"] as! String,
             jsObjectName: map["jsObjectName"] as! String,
             allowedOriginRules: Set(map["allowedOriginRules"] as! [String])
@@ -177,6 +182,7 @@ public class WebMessageListener : FlutterMethodCallDelegate {
         channelDelegate?.dispose()
         channelDelegate = nil
         webView = nil
+        plugin = nil
     }
     
     deinit {

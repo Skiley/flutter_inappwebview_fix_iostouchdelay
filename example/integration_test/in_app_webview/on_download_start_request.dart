@@ -1,11 +1,4 @@
-import 'dart:async';
-
-import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_inappwebview_fix_iostouchdelay/flutter_inappwebview_fix_iostouchdelay.dart';
-import 'package:flutter_test/flutter_test.dart';
-
-import '../env.dart';
+part of 'main.dart';
 
 void onDownloadStartRequest() {
   final shouldSkip = kIsWeb
@@ -16,7 +9,7 @@ void onDownloadStartRequest() {
           TargetPlatform.macOS,
         ].contains(defaultTargetPlatform);
 
-  testWidgets('onDownloadStartRequest', (WidgetTester tester) async {
+  skippableTestWidgets('onDownloadStartRequest', (WidgetTester tester) async {
     final Completer<InAppWebViewController> controllerCompleter =
         Completer<InAppWebViewController>();
     final Completer<String> onDownloadStartCompleter = Completer<String>();

@@ -42,12 +42,16 @@ public class FlutterWebView implements PlatformWebView {
   public InAppWebView webView;
   @Nullable
   public PullToRefreshLayout pullToRefreshLayout;
+  @Nullable
+  public String keepAliveId;
 
   public FlutterWebView(final InAppWebViewFlutterPlugin plugin, final Context context, Object id,
                         HashMap<String, Object> params) {
     DisplayListenerProxy displayListenerProxy = new DisplayListenerProxy();
     DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
     displayListenerProxy.onPreWebViewInitialization(displayManager);
+
+    keepAliveId = (String) params.get("keepAliveId");
     
     Map<String, Object> initialSettings = (Map<String, Object>) params.get("initialSettings");
     Map<String, Object> contextMenu = (Map<String, Object>) params.get("contextMenu");
@@ -101,26 +105,28 @@ public class FlutterWebView implements PlatformWebView {
     final Map<String, String> initialData = (Map<String, String>) params.get("initialData");
 
     if (windowId != null) {
-      Message resultMsg = InAppWebViewChromeClient.windowWebViewMessages.get(windowId);
-      if (resultMsg != null) {
-        ((WebView.WebViewTransport) resultMsg.obj).setWebView(webView);
-        resultMsg.sendToTarget();
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
-          // for some reason, if a WebView is created using a window id,
-          // the initial plugin and user scripts injected
-          // with WebViewCompat.addDocumentStartJavaScript will not be added!
-          // https://github.com/pichillilorenzo/flutter_inappwebview/issues/1455
-          //
-          // Also, calling the prepareAndAddUserScripts method right after won't work,
-          // so use the View.post method here.
-          webView.post(new Runnable() {
-            @Override
-            public void run() {
-              if (webView != null) {
-                webView.prepareAndAddUserScripts();
+      if (webView.plugin != null && webView.plugin.inAppWebViewManager != null) {
+        Message resultMsg = webView.plugin.inAppWebViewManager.windowWebViewMessages.get(windowId);
+        if (resultMsg != null) {
+          ((WebView.WebViewTransport) resultMsg.obj).setWebView(webView);
+          resultMsg.sendToTarget();
+          if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            // for some reason, if a WebView is created using a window id,
+            // the initial plugin and user scripts injected
+            // with WebViewCompat.addDocumentStartJavaScript will not be added!
+            // https://github.com/pichillilorenzo/flutter_inappwebview/issues/1455
+            //
+            // Also, calling the prepareAndAddUserScripts method right after won't work,
+            // so use the View.post method here.
+            webView.post(new Runnable() {
+              @Override
+              public void run() {
+                if (webView != null) {
+                  webView.prepareAndAddUserScripts();
+                }
               }
-            }
-          });
+            });
+          }
         }
       }
     } else {
@@ -151,48 +157,14 @@ public class FlutterWebView implements PlatformWebView {
 
   @Override
   public void dispose() {
-    if (webView != null) {
-      if (webView.channelDelegate != null) {
-        webView.channelDelegate.dispose();
+    if (keepAliveId == null && webView != null) {
+      webView.dispose();
+      webView = null;
+
+      if (pullToRefreshLayout != null) {
+        pullToRefreshLayout.dispose();
+        pullToRefreshLayout = null;
       }
-      webView.removeJavascriptInterface(JavaScriptBridgeJS.JAVASCRIPT_BRIDGE_NAME);
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && WebViewFeature.isFeatureSupported(WebViewFeature.WEB_VIEW_RENDERER_CLIENT_BASIC_USAGE)) {
-        WebViewCompat.setWebViewRenderProcessClient(webView, null);
-      }
-      webView.setWebChromeClient(new WebChromeClient());
-      webView.setWebViewClient(new WebViewClient() {
-        @Override
-        public void onPageFinished(WebView view, String url) {
-          if (webView.inAppWebViewRenderProcessClient != null) {
-            webView.inAppWebViewRenderProcessClient.dispose();
-          }
-          if (webView.inAppWebViewChromeClient != null) {
-            webView.inAppWebViewChromeClient.dispose();
-          }
-          if (webView.inAppWebViewClientCompat != null) {
-            webView.inAppWebViewClientCompat.dispose();
-          }
-          if (webView.inAppWebViewClient != null) {
-            webView.inAppWebViewClient.dispose();
-          }
-          if (webView.javaScriptBridgeInterface != null) {
-            webView.javaScriptBridgeInterface.dispose();
-          }
-          if (webView != null) {
-            webView.dispose();
-            webView.destroy();
-            webView = null;
-          }
-          
-          if (pullToRefreshLayout != null) {
-            pullToRefreshLayout.dispose();
-            pullToRefreshLayout = null;
-          }
-        }
-      });
-      WebSettings settings = webView.getSettings();
-      settings.setJavaScriptEnabled(false);
-      webView.loadUrl("about:blank");
     }
   }
 

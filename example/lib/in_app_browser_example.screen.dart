@@ -4,7 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview_fix_iostouchdelay/flutter_inappwebview_fix_iostouchdelay.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import 'main.dart';
 
@@ -115,6 +116,7 @@ class _InAppBrowserExampleScreenState extends State<InAppBrowserExampleScreen> {
                             toolbarTopBackgroundColor: Colors.blue,
                             presentationStyle: ModalPresentationStyle.POPOVER),
                         webViewSettings: InAppWebViewSettings(
+                          isInspectable: kDebugMode,
                           useShouldOverrideUrlLoading: true,
                           useOnLoadResource: true,
                         ),

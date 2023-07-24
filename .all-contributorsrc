@@ -603,8 +603,63 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "heralight",
+      "name": "Alexandre Richonnier",
+      "avatar_url": "https://avatars.githubusercontent.com/u/534840?v=4",
+      "profile": "https://www.hera.cc",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Sunbreak",
+      "name": "Sunbreak",
+      "avatar_url": "https://avatars.githubusercontent.com/u/7928961?v=4",
+      "profile": "https://github.com/Sunbreak",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "cslee",
+      "name": "Eric Lee",
+      "avatar_url": "https://avatars.githubusercontent.com/u/590752?v=4",
+      "profile": "https://github.com/cslee",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "KhatibFX",
+      "name": "KhatibFX",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5616640?v=4",
+      "profile": "https://github.com/KhatibFX",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "guide-flutter",
+      "name": "Guide.inc",
+      "avatar_url": "https://avatars.githubusercontent.com/u/106543148?v=4",
+      "profile": "https://www.guide.inc",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Nirajn2311",
+      "name": "Niraj Nandish",
+      "avatar_url": "https://avatars.githubusercontent.com/u/36357875?v=4",
+      "profile": "https://github.com/Nirajn2311",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
-  "linkToUsage": false
+  "linkToUsage": false,
+  "commitType": "docs"
 }

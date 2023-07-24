@@ -1,13 +1,17 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter_inappwebview_fix_iostouchdelay/flutter_inappwebview_fix_iostouchdelay.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'dart:async';
 
-import 'load_asset_file.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_test/flutter_test.dart';
+import '../util.dart';
+
+part 'load_asset_file.dart';
 
 void main() {
   final shouldSkip = kIsWeb;
 
-  group('InAppLocalhostServer', () {
+  skippableGroup('InAppLocalhostServer', () {
     final InAppLocalhostServer localhostServer = InAppLocalhostServer();
 
     setUpAll(() async {
