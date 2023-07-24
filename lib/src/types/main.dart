@@ -198,12 +198,10 @@ export 'web_storage_type.dart' show WebStorageType;
 export 'website_data_record.dart'
     show WebsiteDataRecord, IOSWKWebsiteDataRecord;
 export 'website_data_type.dart' show WebsiteDataType, IOSWKWebsiteDataType;
-export 'webview_implementation.dart' show WebViewImplementation;
 export 'webview_package_info.dart'
     show WebViewPackageInfo, AndroidWebViewPackageInfo;
 export 'webview_render_process_action.dart' show WebViewRenderProcessAction;
 export 'window_features.dart' show WindowFeatures, IOSWKWindowFeatures;
-export 'requested_with_header_mode.dart' show RequestedWithHeaderMode;
 export 'find_session.dart' show FindSession;
 export 'search_result_display_style.dart' show SearchResultDisplayStyle;
 export 'content_blocker_trigger_load_context.dart'

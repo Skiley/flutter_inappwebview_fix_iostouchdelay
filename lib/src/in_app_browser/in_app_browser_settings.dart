@@ -121,7 +121,7 @@ class InAppBrowserSettings_
   ///- Android native WebView
   ///- iOS
   ///- MacOS
-  Color? toolbarTopBackgroundColor;
+  Color_? toolbarTopBackgroundColor;
 
   ///Set to `true` to hide the url bar on the toolbar at the top. The default value is `false`.
   ///
@@ -138,6 +138,13 @@ class InAppBrowserSettings_
   ///- iOS
   ///- MacOS
   bool? hideProgressBar;
+
+  ///Set to `true` to hide the default menu items. The default value is `false`.
+  ///
+  ///**Supported Platforms/Implementations**:
+  ///- Android native WebView
+  ///- iOS
+  bool? hideDefaultMenuItems;
 
   ///Set to `true` if you want the title should be displayed. The default value is `false`.
   ///
@@ -180,13 +187,13 @@ class InAppBrowserSettings_
   ///
   ///**Supported Platforms/Implementations**:
   ///- iOS
-  Color? toolbarTopBarTintColor;
+  Color_? toolbarTopBarTintColor;
 
   ///Set the tint color to apply to the navigation items and bar button items.
   ///
   ///**Supported Platforms/Implementations**:
   ///- iOS
-  Color? toolbarTopTintColor;
+  Color_? toolbarTopTintColor;
 
   ///Set to `true` to hide the toolbar at the bottom of the WebView. The default value is `false`.
   ///
@@ -198,13 +205,13 @@ class InAppBrowserSettings_
   ///
   ///**Supported Platforms/Implementations**:
   ///- iOS
-  Color? toolbarBottomBackgroundColor;
+  Color_? toolbarBottomBackgroundColor;
 
   ///Set the tint color to apply to the bar button items.
   ///
   ///**Supported Platforms/Implementations**:
   ///- iOS
-  Color? toolbarBottomTintColor;
+  Color_? toolbarBottomTintColor;
 
   ///Set to `true` to set the toolbar at the bottom translucent. The default value is `true`.
   ///
@@ -222,7 +229,19 @@ class InAppBrowserSettings_
   ///
   ///**Supported Platforms/Implementations**:
   ///- iOS
-  Color? closeButtonColor;
+  Color_? closeButtonColor;
+
+  ///Set to `true` to hide the close button. The default value is `false`.
+  ///
+  ///**Supported Platforms/Implementations**:
+  ///- iOS
+  bool? hideCloseButton;
+
+  ///Set the custom color for the menu button.
+  ///
+  ///**Supported Platforms/Implementations**:
+  ///- iOS
+  Color_? menuButtonColor;
 
   ///Set the custom modal presentation style when presenting the WebView. The default value is [ModalPresentationStyle.FULL_SCREEN].
   ///
@@ -277,6 +296,7 @@ class InAppBrowserSettings_
       this.toolbarTopBackgroundColor,
       this.hideUrlBar = false,
       this.hideProgressBar = false,
+      this.hideDefaultMenuItems = false,
       this.toolbarTopTranslucent = true,
       this.toolbarTopTintColor,
       this.hideToolbarBottom = false,
@@ -285,6 +305,7 @@ class InAppBrowserSettings_
       this.toolbarBottomTranslucent = true,
       this.closeButtonCaption,
       this.closeButtonColor,
+      this.hideCloseButton = false,
       this.presentationStyle = ModalPresentationStyle_.FULL_SCREEN,
       this.transitionStyle = ModalTransitionStyle_.COVER_VERTICAL,
       this.hideTitleBar = false,

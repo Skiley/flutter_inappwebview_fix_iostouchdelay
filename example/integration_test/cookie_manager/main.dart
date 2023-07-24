@@ -1,12 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_inappwebview_fix_iostouchdelay/flutter_inappwebview_fix_iostouchdelay.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'set_get_delete.dart';
+import '../constants.dart';
+import '../util.dart';
+
+part 'set_get_delete.dart';
 
 void main() {
   final shouldSkip = kIsWeb;
 
-  group('Cookie Manager', () {
+  skippableGroup('Cookie Manager', () {
     setGetDelete();
   }, skip: shouldSkip);
 }

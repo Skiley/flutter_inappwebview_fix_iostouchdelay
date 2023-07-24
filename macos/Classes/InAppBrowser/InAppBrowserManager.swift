@@ -16,11 +16,11 @@ public class InAppBrowserManager: ChannelDelegate {
     static let WEBVIEW_STORYBOARD = "WebView"
     static let WEBVIEW_STORYBOARD_CONTROLLER_ID = "viewController"
     static let NAV_STORYBOARD_CONTROLLER_ID = "navController"
-    static var registrar: FlutterPluginRegistrar?
+    var plugin: InAppWebViewFlutterPlugin?
     
-    init(registrar: FlutterPluginRegistrar) {
-        super.init(channel: FlutterMethodChannel(name: InAppBrowserManager.METHOD_CHANNEL_NAME, binaryMessenger: registrar.messenger))
-        InAppBrowserManager.registrar = registrar
+    init(plugin: InAppWebViewFlutterPlugin) {
+        super.init(channel: FlutterMethodChannel(name: InAppBrowserManager.METHOD_CHANNEL_NAME, binaryMessenger: plugin.registrar!.messenger))
+        self.plugin = plugin
     }
     
     public override func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -52,6 +52,7 @@ public class InAppBrowserManager: ChannelDelegate {
         let settings = arguments["settings"] as! [String: Any?]
         let windowId = arguments["windowId"] as? Int64
         let initialUserScripts = arguments["initialUserScripts"] as? [[String: Any]]
+        let menuItems = arguments["menuItems"] as! [[String: Any?]]
         
         let browserSettings = InAppBrowserSettings()
         let _ = browserSettings.parse(settings: settings)
@@ -60,6 +61,7 @@ public class InAppBrowserManager: ChannelDelegate {
         let _ = webViewSettings.parse(settings: settings)
         
         let webViewController = InAppBrowserWebViewController()
+        webViewController.plugin = plugin
         webViewController.browserSettings = browserSettings
         webViewController.webViewSettings = webViewSettings
         
@@ -77,6 +79,9 @@ public class InAppBrowserManager: ChannelDelegate {
         let window = InAppBrowserWindow(contentViewController: webViewController)
         window.browserSettings = browserSettings
         window.contentViewController = webViewController
+        for menuItem in menuItems {
+            window.menuItems.append(InAppBrowserMenuItem.fromMap(map: menuItem)!)
+        }
         window.prepare()
         
         if #available(macOS 10.12, *), browserSettings.windowType == .tabbed {
@@ -103,7 +108,7 @@ public class InAppBrowserManager: ChannelDelegate {
     
     public override func dispose() {
         super.dispose()
-        InAppBrowserManager.registrar = nil
+        plugin = nil
     }
     
     deinit {

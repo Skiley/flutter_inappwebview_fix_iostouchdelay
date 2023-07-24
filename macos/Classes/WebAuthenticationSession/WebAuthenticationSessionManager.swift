@@ -14,12 +14,12 @@ import SafariServices
 
 public class WebAuthenticationSessionManager: ChannelDelegate {
     static let METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_webauthenticationsession"
-    static var registrar: FlutterPluginRegistrar?
-    static var sessions: [String: WebAuthenticationSession?] = [:]
+    var plugin: InAppWebViewFlutterPlugin?
+    var sessions: [String: WebAuthenticationSession?] = [:]
     
-    init(registrar: FlutterPluginRegistrar) {
-        super.init(channel: FlutterMethodChannel(name: WebAuthenticationSessionManager.METHOD_CHANNEL_NAME, binaryMessenger: registrar.messenger))
-        WebAuthenticationSessionManager.registrar = registrar
+    init(plugin: InAppWebViewFlutterPlugin) {
+        super.init(channel: FlutterMethodChannel(name: WebAuthenticationSessionManager.METHOD_CHANNEL_NAME, binaryMessenger: plugin.registrar!.messenger))
+        self.plugin = plugin
     }
     
     public override func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -34,7 +34,7 @@ public class WebAuthenticationSessionManager: ChannelDelegate {
                 create(id: id, url: url, callbackURLScheme: callbackURLScheme, settings: initialSettings, result: result)
                 break
             case "isAvailable":
-                if #available(iOS 11.0, *) {
+                if #available(macOS 10.15, *) {
                     result(true)
                 } else {
                     result(false)
@@ -47,13 +47,13 @@ public class WebAuthenticationSessionManager: ChannelDelegate {
     }
     
     public func create(id: String, url: String, callbackURLScheme: String?, settings: [String: Any?], result: @escaping FlutterResult) {
-        if #available(iOS 11.0, *) {
+        if #available(macOS 10.15, *), let plugin = plugin {
             let sessionUrl = URL(string: url) ?? URL(string: "about:blank")!
             let initialSettings = WebAuthenticationSessionSettings()
             let _ = initialSettings.parse(settings: settings)
-            let session = WebAuthenticationSession(id: id, url: sessionUrl, callbackURLScheme: callbackURLScheme, settings: initialSettings)
+            let session = WebAuthenticationSession(plugin: plugin, id: id, url: sessionUrl, callbackURLScheme: callbackURLScheme, settings: initialSettings)
             session.prepare()
-            WebAuthenticationSessionManager.sessions[id] = session
+            sessions[id] = session
             result(true)
             return
         }
@@ -63,13 +63,13 @@ public class WebAuthenticationSessionManager: ChannelDelegate {
     
     public override func dispose() {
         super.dispose()
-        WebAuthenticationSessionManager.registrar = nil
-        let sessions = WebAuthenticationSessionManager.sessions.values
-        sessions.forEach { (session: WebAuthenticationSession?) in
+        let sessionValues = sessions.values
+        sessionValues.forEach { (session: WebAuthenticationSession?) in
             session?.cancel()
             session?.dispose()
         }
-        WebAuthenticationSessionManager.sessions.removeAll()
+        sessions.removeAll()
+        plugin = nil
     }
     
     deinit {

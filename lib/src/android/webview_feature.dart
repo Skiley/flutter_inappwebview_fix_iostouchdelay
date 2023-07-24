@@ -1,12 +1,15 @@
 import 'dart:async';
+
 import 'package:flutter/services.dart';
+import 'package:flutter_inappwebview_fix_iostouchdelay/src/cookie_manager.dart';
 import 'package:flutter_inappwebview_internal_annotations/flutter_inappwebview_internal_annotations.dart';
+
 import '../in_app_webview/in_app_webview_controller.dart';
 import '../in_app_webview/in_app_webview_settings.dart';
+import '../types/user_script_injection_time.dart';
+import '../web_message/main.dart';
 import 'proxy_controller.dart';
 import 'service_worker_controller.dart';
-import '../web_message/main.dart';
-import '../types/user_script_injection_time.dart';
 
 part 'webview_feature.g.dart';
 
@@ -22,6 +25,7 @@ class WebViewFeature_ {
 
   // ignore: unused_field
   final String _value;
+
   const WebViewFeature_._internal(this._value);
 
   @ExchangeableObjectMethod(ignore: true)
@@ -208,10 +212,6 @@ class WebViewFeature_ {
   static const ALGORITHMIC_DARKENING =
       const WebViewFeature_._internal("ALGORITHMIC_DARKENING");
 
-  ///This feature covers [InAppWebViewSettings.requestedWithHeaderMode].
-  static const REQUESTED_WITH_HEADER_CONTROL =
-      const WebViewFeature_._internal("REQUESTED_WITH_HEADER_CONTROL");
-
   ///This feature covers [InAppWebViewSettings.enterpriseAuthenticationAppLinkPolicyEnabled].
   static const ENTERPRISE_AUTHENTICATION_APP_LINK_POLICY =
       const WebViewFeature_._internal(
@@ -220,6 +220,14 @@ class WebViewFeature_ {
   ///This feature covers [InAppWebViewController.getVariationsHeader].
   static const GET_VARIATIONS_HEADER =
       const WebViewFeature_._internal("GET_VARIATIONS_HEADER");
+
+  ///This feature covers cookie attributes of [CookieManager.getCookie] and [CookieManager.getCookies] methods.
+  static const GET_COOKIE_INFO =
+      const WebViewFeature_._internal("GET_COOKIE_INFO");
+
+  ///This feature covers cookie attributes of [CookieManager.getCookie] and [CookieManager.getCookies] methods.
+  static const REQUESTED_WITH_HEADER_ALLOW_LIST =
+      const WebViewFeature_._internal("REQUESTED_WITH_HEADER_ALLOW_LIST");
 
   ///Return whether a feature is supported at run-time. On devices running Android version `Build.VERSION_CODES.LOLLIPOP` and higher,
   ///this will check whether a feature is supported, depending on the combination of the desired feature, the Android version of device,
@@ -244,6 +252,7 @@ class AndroidWebViewFeature_ {
 
   // ignore: unused_field
   final String _value;
+
   const AndroidWebViewFeature_._internal(this._value);
 
   @ExchangeableObjectMethod(ignore: true)

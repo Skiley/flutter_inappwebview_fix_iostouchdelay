@@ -16,13 +16,13 @@ public class InAppBrowserManager: ChannelDelegate {
     static let WEBVIEW_STORYBOARD = "WebView"
     static let WEBVIEW_STORYBOARD_CONTROLLER_ID = "viewController"
     static let NAV_STORYBOARD_CONTROLLER_ID = "navController"
-    static var registrar: FlutterPluginRegistrar?
+    var plugin: SwiftFlutterPlugin?
     
     private var previousStatusBarStyle = -1
     
-    init(registrar: FlutterPluginRegistrar) {
-        super.init(channel: FlutterMethodChannel(name: InAppBrowserManager.METHOD_CHANNEL_NAME, binaryMessenger: registrar.messenger()))
-        InAppBrowserManager.registrar = registrar
+    init(plugin: SwiftFlutterPlugin) {
+        super.init(channel: FlutterMethodChannel(name: InAppBrowserManager.METHOD_CHANNEL_NAME, binaryMessenger: plugin.registrar!.messenger()))
+        self.plugin = plugin
     }
     
     public override func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -55,6 +55,7 @@ public class InAppBrowserManager: ChannelDelegate {
         let _ = webViewSettings.parse(settings: settings)
         
         let webViewController = InAppBrowserWebViewController()
+        webViewController.plugin = plugin
         webViewController.browserSettings = browserSettings
         webViewController.isHidden = browserSettings.hidden
         webViewController.webViewSettings = webViewSettings
@@ -75,6 +76,7 @@ public class InAppBrowserManager: ChannelDelegate {
         let windowId = arguments["windowId"] as? Int64
         let initialUserScripts = arguments["initialUserScripts"] as? [[String: Any]]
         let pullToRefreshInitialSettings = arguments["pullToRefreshSettings"] as! [String: Any?]
+        let menuItems = arguments["menuItems"] as! [[String: Any?]]
         
         let webViewController = prepareInAppBrowserWebViewController(settings: settings)
         
@@ -89,6 +91,9 @@ public class InAppBrowserManager: ChannelDelegate {
         webViewController.windowId = windowId
         webViewController.initialUserScripts = initialUserScripts ?? []
         webViewController.pullToRefreshInitialSettings = pullToRefreshInitialSettings
+        for menuItem in menuItems {
+            webViewController.menuItems.append(InAppBrowserMenuItem.fromMap(map: menuItem)!)
+        }
         
         presentViewController(webViewController: webViewController)
     }
@@ -137,7 +142,7 @@ public class InAppBrowserManager: ChannelDelegate {
     
     public override func dispose() {
         super.dispose()
-        InAppBrowserManager.registrar = nil
+        plugin = nil
     }
     
     deinit {

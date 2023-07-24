@@ -4,40 +4,17 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import '../types/android_resource.dart';
 import '../types/custom_tabs_navigation_event_type.dart';
 import '../types/custom_tabs_relation_type.dart';
 import '../types/prewarming_token.dart';
-import '../types/ui_image.dart';
 import '../util.dart';
 import '../debug_logging_settings.dart';
 
 import '../web_uri.dart';
 import 'chrome_safari_browser_settings.dart';
-
-class ChromeSafariBrowserAlreadyOpenedException implements Exception {
-  final dynamic message;
-
-  ChromeSafariBrowserAlreadyOpenedException([this.message]);
-
-  String toString() {
-    Object? message = this.message;
-    if (message == null) return "ChromeSafariBrowserAlreadyOpenedException";
-    return "ChromeSafariBrowserAlreadyOpenedException: $message";
-  }
-}
-
-class ChromeSafariBrowserNotOpenedException implements Exception {
-  final dynamic message;
-
-  ChromeSafariBrowserNotOpenedException([this.message]);
-
-  String toString() {
-    Object? message = this.message;
-    if (message == null) return "ChromeSafariBrowserNotOpenedException";
-    return "ChromeSafariBrowserNotOpenedException: $message";
-  }
-}
+import 'chrome_safari_action_button.dart';
+import 'chrome_safari_browser_menu_item.dart';
+import 'chrome_safari_browser_secondary_toolbar.dart';
 
 ///This class uses native [Chrome Custom Tabs](https://developer.android.com/reference/android/support/customtabs/package-summary) on Android
 ///and [SFSafariViewController](https://developer.apple.com/documentation/safariservices/sfsafariviewcontroller) on iOS.
@@ -60,7 +37,7 @@ class ChromeSafariBrowser {
   Map<int, ChromeSafariBrowserMenuItem> _menuItems = new HashMap();
   ChromeSafariBrowserSecondaryToolbar? _secondaryToolbar;
   bool _isOpened = false;
-  late MethodChannel _channel;
+  MethodChannel? _channel;
   static const MethodChannel _sharedChannel =
       const MethodChannel('com.pichillilorenzo/flutter_chromesafaribrowser');
 
@@ -68,7 +45,7 @@ class ChromeSafariBrowser {
     id = IdGenerator.generate();
     this._channel =
         MethodChannel('com.pichillilorenzo/flutter_chromesafaribrowser_$id');
-    this._channel.setMethodCallHandler((call) async {
+    this._channel?.setMethodCallHandler((call) async {
       try {
         return await _handleMethod(call);
       } on Error catch (e) {
@@ -77,6 +54,19 @@ class ChromeSafariBrowser {
       }
     });
     _isOpened = false;
+  }
+
+  _init() {
+    this._channel =
+        MethodChannel('com.pichillilorenzo/flutter_chromesafaribrowser_$id');
+    this._channel?.setMethodCallHandler((call) async {
+      try {
+        return await _handleMethod(call);
+      } on Error catch (e) {
+        print(e);
+        print(e.stackTrace);
+      }
+    });
   }
 
   _debugLog(String method, dynamic args) {
@@ -125,8 +115,9 @@ class ChromeSafariBrowser {
         onWillOpenInBrowser();
         break;
       case "onClosed":
+        _isOpened = false;
+        _dispose();
         onClosed();
-        this._isOpened = false;
         break;
       case "onItemActionPerform":
         String url = call.arguments["url"];
@@ -208,6 +199,9 @@ class ChromeSafariBrowser {
           // ignore: deprecated_member_use_from_same_package
           ChromeSafariBrowserClassOptions? options,
       ChromeSafariBrowserSettings? settings}) async {
+    assert(!_isOpened, 'The browser is already opened.');
+    _isOpened = true;
+
     if (Util.isIOS) {
       assert(url != null, 'The specified URL must not be null on iOS.');
       assert(['http', 'https'].contains(url!.scheme),
@@ -216,9 +210,8 @@ class ChromeSafariBrowser {
     if (url != null) {
       assert(url.toString().isNotEmpty, 'The specified URL must not be empty.');
     }
-    this.throwIsAlreadyOpened(message: url != null ? 'Cannot open $url!' : '');
 
-    this._isOpened = true;
+    _init();
 
     List<Map<String, dynamic>> menuItemList = [];
     _menuItems.forEach((key, value) {
@@ -269,7 +262,7 @@ class ChromeSafariBrowser {
     args.putIfAbsent('otherLikelyURLs',
         () => otherLikelyURLs?.map((e) => e.toString()).toList());
     args.putIfAbsent('referrer', () => referrer?.toString());
-    await _channel.invokeMethod("launchUrl", args);
+    await _channel?.invokeMethod("launchUrl", args);
   }
 
   ///Tells the browser of a likely future navigation to a URL.
@@ -290,7 +283,7 @@ class ChromeSafariBrowser {
     args.putIfAbsent('url', () => url?.toString());
     args.putIfAbsent('otherLikelyURLs',
         () => otherLikelyURLs?.map((e) => e.toString()).toList());
-    return await _channel.invokeMethod("mayLaunchUrl", args);
+    return await _channel?.invokeMethod("mayLaunchUrl", args);
   }
 
   ///Requests to validate a relationship between the application and an origin.
@@ -315,7 +308,7 @@ class ChromeSafariBrowser {
     Map<String, dynamic> args = <String, dynamic>{};
     args.putIfAbsent('relation', () => relation.toNativeValue());
     args.putIfAbsent('origin', () => origin.toString());
-    return await _channel.invokeMethod("validateRelationship", args);
+    return await _channel?.invokeMethod("validateRelationship", args);
   }
 
   ///Closes the [ChromeSafariBrowser] instance.
@@ -325,7 +318,7 @@ class ChromeSafariBrowser {
   ///- iOS
   Future<void> close() async {
     Map<String, dynamic> args = <String, dynamic>{};
-    await _channel.invokeMethod("close", args);
+    await _channel?.invokeMethod("close", args);
   }
 
   ///Set a custom action button.
@@ -349,7 +342,7 @@ class ChromeSafariBrowser {
     Map<String, dynamic> args = <String, dynamic>{};
     args.putIfAbsent('icon', () => icon);
     args.putIfAbsent('description', () => description);
-    await _channel.invokeMethod("updateActionButton", args);
+    await _channel?.invokeMethod("updateActionButton", args);
     _actionButton?.icon = icon;
     _actionButton?.description = description;
   }
@@ -375,7 +368,7 @@ class ChromeSafariBrowser {
       ChromeSafariBrowserSecondaryToolbar secondaryToolbar) async {
     Map<String, dynamic> args = <String, dynamic>{};
     args.putIfAbsent('secondaryToolbar', () => secondaryToolbar.toMap());
-    await _channel.invokeMethod("updateSecondaryToolbar", args);
+    await _channel?.invokeMethod("updateSecondaryToolbar", args);
     this._secondaryToolbar = secondaryToolbar;
   }
 
@@ -546,190 +539,12 @@ class ChromeSafariBrowser {
   ///- Android
   ///- iOS
   bool isOpened() {
-    return this._isOpened;
+    return _isOpened;
   }
 
-  void throwIsAlreadyOpened({String message = ''}) {
-    if (this.isOpened()) {
-      throw ChromeSafariBrowserAlreadyOpenedException([
-        'Error: ${(message.isEmpty) ? '' : message + ' '}The browser is already opened.'
-      ]);
-    }
-  }
-
-  void throwIsNotOpened({String message = ''}) {
-    if (!this.isOpened()) {
-      throw ChromeSafariBrowserNotOpenedException([
-        'Error: ${(message.isEmpty) ? '' : message + ' '}The browser is not opened.'
-      ]);
-    }
-  }
-}
-
-///Class that represents a custom action button for a [ChromeSafariBrowser] instance.
-///
-///**NOTE**: Not available in an Android Trusted Web Activity.
-///
-///**Supported Platforms/Implementations**:
-///- Android
-class ChromeSafariBrowserActionButton {
-  ///The action button id. It should be different from the [ChromeSafariBrowserMenuItem.id].
-  int id;
-
-  ///The icon byte data.
-  Uint8List icon;
-
-  ///The description for the button. To be used for accessibility.
-  String description;
-
-  ///Whether the action button should be tinted.
-  bool shouldTint;
-
-  ///Use onClick instead.
-  @Deprecated("Use onClick instead")
-  void Function(String url, String title)? action;
-
-  ///Callback function to be invoked when the action button is clicked
-  void Function(WebUri? url, String title)? onClick;
-
-  ChromeSafariBrowserActionButton(
-      {required this.id,
-      required this.icon,
-      required this.description,
-      @Deprecated("Use onClick instead") this.action,
-      this.onClick,
-      this.shouldTint = false});
-
-  Map<String, dynamic> toMap() {
-    return {
-      "id": id,
-      "icon": icon,
-      "description": description,
-      "shouldTint": shouldTint
-    };
-  }
-
-  Map<String, dynamic> toJson() {
-    return this.toMap();
-  }
-
-  @override
-  String toString() {
-    return toMap().toString();
-  }
-}
-
-///Class that represents a custom menu item for a [ChromeSafariBrowser] instance.
-///
-///**NOTE**: Not available in an Android Trusted Web Activity.
-///
-///**Supported Platforms/Implementations**:
-///- Android
-///- iOS
-class ChromeSafariBrowserMenuItem {
-  ///The menu item id. It should be different from [ChromeSafariBrowserActionButton.id].
-  int id;
-
-  ///The label of the menu item.
-  String label;
-
-  ///Item image.
-  UIImage? image;
-
-  ///Use onClick instead.
-  @Deprecated("Use onClick instead")
-  void Function(String url, String title)? action;
-
-  ///Callback function to be invoked when the menu item is clicked
-  void Function(WebUri? url, String title)? onClick;
-
-  ChromeSafariBrowserMenuItem(
-      {required this.id,
-      required this.label,
-      this.image,
-      @Deprecated("Use onClick instead") this.action,
-      this.onClick});
-
-  Map<String, dynamic> toMap() {
-    return {"id": id, "label": label, "image": image?.toMap()};
-  }
-
-  Map<String, dynamic> toJson() {
-    return this.toMap();
-  }
-
-  @override
-  String toString() {
-    return toMap().toString();
-  }
-}
-
-///Class that represents the [RemoteViews](https://developer.android.com/reference/android/widget/RemoteViews.html)
-///that will be shown on the secondary toolbar of a custom tab.
-///
-///This class describes a view hierarchy that can be displayed in another process.
-///The hierarchy is inflated from an Android layout resource file.
-///
-///RemoteViews has limited to support to Android layouts.
-///Check the [RemoteViews Official API](https://developer.android.com/reference/android/widget/RemoteViews.html) for more details.
-///
-///**NOTE**: Not available in an Android Trusted Web Activity.
-///
-///**Supported Platforms/Implementations**:
-///- Android
-class ChromeSafariBrowserSecondaryToolbar {
-  ///The android layout resource.
-  AndroidResource layout;
-
-  ///The IDs of clickable views. The `onClick` event of these views will be handled by custom tabs.
-  List<ChromeSafariBrowserSecondaryToolbarClickableID> clickableIDs;
-
-  ChromeSafariBrowserSecondaryToolbar(
-      {required this.layout, this.clickableIDs = const []});
-
-  Map<String, dynamic> toMap() {
-    return {
-      "layout": layout.toMap(),
-      "clickableIDs": clickableIDs.map((e) => e.toMap()).toList()
-    };
-  }
-
-  Map<String, dynamic> toJson() {
-    return this.toMap();
-  }
-
-  @override
-  String toString() {
-    return toMap().toString();
-  }
-}
-
-///Class that represents a clickable ID item of the secondary toolbar for a [ChromeSafariBrowser] instance.
-///
-///**NOTE**: Not available in an Android Trusted Web Activity.
-///
-///**Supported Platforms/Implementations**:
-///- Android
-class ChromeSafariBrowserSecondaryToolbarClickableID {
-  ///The android id resource
-  AndroidResource id;
-
-  ///Callback function to be invoked when the item is clicked
-  void Function(WebUri? url)? onClick;
-
-  ChromeSafariBrowserSecondaryToolbarClickableID(
-      {required this.id, this.onClick});
-
-  Map<String, dynamic> toMap() {
-    return {"id": id.toMap()};
-  }
-
-  Map<String, dynamic> toJson() {
-    return this.toMap();
-  }
-
-  @override
-  String toString() {
-    return toMap().toString();
+  ///Disposes the channel.
+  void _dispose() {
+    _channel?.setMethodCallHandler(null);
+    _channel = null;
   }
 }

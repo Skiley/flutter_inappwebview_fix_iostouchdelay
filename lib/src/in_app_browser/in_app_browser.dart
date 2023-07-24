@@ -5,7 +5,7 @@ import 'dart:ui';
 
 import 'package:flutter/services.dart';
 
-import '../context_menu.dart';
+import '../context_menu/context_menu.dart';
 import '../find_interaction/find_interaction_controller.dart';
 import '../pull_to_refresh/main.dart';
 import '../types/main.dart';
@@ -16,32 +16,10 @@ import '../in_app_webview/in_app_webview_settings.dart';
 import '../util.dart';
 import '../print_job/main.dart';
 import '../web_uri.dart';
+import 'in_app_browser_menu_item.dart';
 import 'in_app_browser_settings.dart';
 import '../debug_logging_settings.dart';
-
-class InAppBrowserAlreadyOpenedException implements Exception {
-  final dynamic message;
-
-  InAppBrowserAlreadyOpenedException([this.message]);
-
-  String toString() {
-    Object? message = this.message;
-    if (message == null) return "InAppBrowserAlreadyOpenedException";
-    return "InAppBrowserAlreadyOpenedException: $message";
-  }
-}
-
-class InAppBrowserNotOpenedException implements Exception {
-  final dynamic message;
-
-  InAppBrowserNotOpenedException([this.message]);
-
-  String toString() {
-    Object? message = this.message;
-    if (message == null) return "InAppBrowserNotOpenedException";
-    return "InAppBrowserNotOpenedException: $message";
-  }
-}
+import '../pull_to_refresh/pull_to_refresh_controller.dart';
 
 ///This class uses the native WebView of the platform.
 ///The [webViewController] field can be used to access the [InAppWebViewController] API.
@@ -70,11 +48,13 @@ class InAppBrowser {
   final UnmodifiableListView<UserScript>? initialUserScripts;
 
   bool _isOpened = false;
-  late MethodChannel _channel;
+  MethodChannel? _channel;
   static const MethodChannel _sharedChannel =
       const MethodChannel('com.pichillilorenzo/flutter_inappbrowser');
 
-  late final InAppWebViewController _webViewController;
+  InAppWebViewController? _webViewController;
+
+  Map<int, InAppBrowserMenuItem> _menuItems = new HashMap();
 
   ///WebView Controller that can be used to access the [InAppWebViewController] API.
   ///When [onExit] is fired, this will be `null` and cannot be used anymore.
@@ -85,18 +65,14 @@ class InAppBrowser {
   ///The window id of a [CreateWindowAction.windowId].
   final int? windowId;
 
-  ///Represents the WebView native implementation to be used.
-  ///The default value is [WebViewImplementation.NATIVE].
-  final WebViewImplementation implementation;
-
-  InAppBrowser(
-      {this.windowId,
-      this.initialUserScripts,
-      this.implementation = WebViewImplementation.NATIVE}) {
+  InAppBrowser({this.windowId, this.initialUserScripts}) {
     id = IdGenerator.generate();
+  }
+
+  _init() {
     this._channel =
         MethodChannel('com.pichillilorenzo/flutter_inappbrowser_$id');
-    this._channel.setMethodCallHandler((call) async {
+    this._channel?.setMethodCallHandler((call) async {
       try {
         return await _handleMethod(call);
       } on Error catch (e) {
@@ -104,9 +80,10 @@ class InAppBrowser {
         print(e.stackTrace);
       }
     });
-    _isOpened = false;
     _webViewController = new InAppWebViewController.fromInAppBrowser(
-        this._channel, this, this.initialUserScripts);
+        this._channel!, this, this.initialUserScripts);
+    pullToRefreshController?.init(id);
+    findInteractionController?.init(id);
   }
 
   _debugLog(String method, dynamic args) {
@@ -122,19 +99,61 @@ class InAppBrowser {
     switch (call.method) {
       case "onBrowserCreated":
         _debugLog(call.method, call.arguments);
-        this._isOpened = true;
-        this.pullToRefreshController?.initMethodChannel(id);
-        this.findInteractionController?.initMethodChannel(id);
         onBrowserCreated();
+        break;
+      case "onMenuItemClicked":
+        _debugLog(call.method, call.arguments);
+        int id = call.arguments["id"].toInt();
+        if (this._menuItems[id] != null) {
+          if (this._menuItems[id]?.onClick != null) {
+            this._menuItems[id]?.onClick!();
+          }
+        }
         break;
       case "onExit":
         _debugLog(call.method, call.arguments);
-        this._isOpened = false;
+        _isOpened = false;
+        _dispose();
         onExit();
         break;
       default:
-        return _webViewController.handleMethod(call);
+        return _webViewController?.handleMethod(call);
     }
+  }
+
+  Map<String, dynamic> _prepareOpenRequest(
+      { // ignore: deprecated_member_use_from_same_package
+      @Deprecated('Use settings instead') InAppBrowserClassOptions? options,
+      InAppBrowserClassSettings? settings}) {
+    assert(!_isOpened, 'The browser is already opened.');
+    _isOpened = true;
+    _init();
+
+    var initialSettings = settings?.toMap() ??
+        options?.toMap() ??
+        InAppBrowserClassSettings().toMap();
+
+    Map<String, dynamic> pullToRefreshSettings =
+        pullToRefreshController?.settings.toMap() ??
+            // ignore: deprecated_member_use_from_same_package
+            pullToRefreshController?.options.toMap() ??
+            PullToRefreshSettings(enabled: false).toMap();
+
+    List<Map<String, dynamic>> menuItemList = [];
+    _menuItems.forEach((key, value) {
+      menuItemList.add(value.toMap());
+    });
+
+    Map<String, dynamic> args = <String, dynamic>{};
+    args.putIfAbsent('id', () => id);
+    args.putIfAbsent('settings', () => initialSettings);
+    args.putIfAbsent('contextMenu', () => contextMenu?.toMap() ?? {});
+    args.putIfAbsent('windowId', () => windowId);
+    args.putIfAbsent('initialUserScripts',
+        () => initialUserScripts?.map((e) => e.toMap()).toList() ?? []);
+    args.putIfAbsent('pullToRefreshSettings', () => pullToRefreshSettings);
+    args.putIfAbsent('menuItems', () => menuItemList);
+    return args;
   }
 
   ///Opens the [InAppBrowser] instance with an [urlRequest].
@@ -154,29 +173,11 @@ class InAppBrowser {
       // ignore: deprecated_member_use_from_same_package
       @Deprecated('Use settings instead') InAppBrowserClassOptions? options,
       InAppBrowserClassSettings? settings}) async {
-    this.throwIfAlreadyOpened(message: 'Cannot open $urlRequest!');
     assert(urlRequest.url != null && urlRequest.url.toString().isNotEmpty);
 
-    var initialSettings = settings?.toMap() ??
-        options?.toMap() ??
-        InAppBrowserClassSettings().toMap();
-
-    Map<String, dynamic> pullToRefreshSettings =
-        pullToRefreshController?.settings.toMap() ??
-            // ignore: deprecated_member_use_from_same_package
-            pullToRefreshController?.options.toMap() ??
-            PullToRefreshSettings(enabled: false).toMap();
-
-    Map<String, dynamic> args = <String, dynamic>{};
-    args.putIfAbsent('id', () => id);
+    Map<String, dynamic> args =
+        _prepareOpenRequest(options: options, settings: settings);
     args.putIfAbsent('urlRequest', () => urlRequest.toMap());
-    args.putIfAbsent('settings', () => initialSettings);
-    args.putIfAbsent('contextMenu', () => contextMenu?.toMap() ?? {});
-    args.putIfAbsent('windowId', () => windowId);
-    args.putIfAbsent('implementation', () => implementation.toNativeValue());
-    args.putIfAbsent('initialUserScripts',
-        () => initialUserScripts?.map((e) => e.toMap()).toList() ?? []);
-    args.putIfAbsent('pullToRefreshSettings', () => pullToRefreshSettings);
     await _sharedChannel.invokeMethod('open', args);
   }
 
@@ -227,29 +228,11 @@ class InAppBrowser {
       // ignore: deprecated_member_use_from_same_package
       @Deprecated('Use settings instead') InAppBrowserClassOptions? options,
       InAppBrowserClassSettings? settings}) async {
-    this.throwIfAlreadyOpened(message: 'Cannot open $assetFilePath!');
     assert(assetFilePath.isNotEmpty);
 
-    var initialSettings = settings?.toMap() ??
-        options?.toMap() ??
-        InAppBrowserClassSettings().toMap();
-
-    Map<String, dynamic> pullToRefreshSettings =
-        pullToRefreshController?.settings.toMap() ??
-            // ignore: deprecated_member_use_from_same_package
-            pullToRefreshController?.options.toMap() ??
-            PullToRefreshSettings(enabled: false).toMap();
-
-    Map<String, dynamic> args = <String, dynamic>{};
-    args.putIfAbsent('id', () => id);
+    Map<String, dynamic> args =
+        _prepareOpenRequest(options: options, settings: settings);
     args.putIfAbsent('assetFilePath', () => assetFilePath);
-    args.putIfAbsent('settings', () => initialSettings);
-    args.putIfAbsent('contextMenu', () => contextMenu?.toMap() ?? {});
-    args.putIfAbsent('windowId', () => windowId);
-    args.putIfAbsent('implementation', () => implementation.toNativeValue());
-    args.putIfAbsent('initialUserScripts',
-        () => initialUserScripts?.map((e) => e.toMap()).toList() ?? []);
-    args.putIfAbsent('pullToRefreshSettings', () => pullToRefreshSettings);
     await _sharedChannel.invokeMethod('open', args);
   }
 
@@ -279,33 +262,14 @@ class InAppBrowser {
       // ignore: deprecated_member_use_from_same_package
       @Deprecated('Use settings instead') InAppBrowserClassOptions? options,
       InAppBrowserClassSettings? settings}) async {
-    this.throwIfAlreadyOpened(message: 'Cannot open data!');
-
-    var initialSettings = settings?.toMap() ??
-        options?.toMap() ??
-        InAppBrowserClassSettings().toMap();
-
-    Map<String, dynamic> pullToRefreshSettings =
-        pullToRefreshController?.settings.toMap() ??
-            // ignore: deprecated_member_use_from_same_package
-            pullToRefreshController?.options.toMap() ??
-            PullToRefreshSettings(enabled: false).toMap();
-
-    Map<String, dynamic> args = <String, dynamic>{};
-    args.putIfAbsent('id', () => id);
-    args.putIfAbsent('settings', () => initialSettings);
+    Map<String, dynamic> args =
+        _prepareOpenRequest(options: options, settings: settings);
     args.putIfAbsent('data', () => data);
     args.putIfAbsent('mimeType', () => mimeType);
     args.putIfAbsent('encoding', () => encoding);
     args.putIfAbsent('baseUrl', () => baseUrl?.toString() ?? "about:blank");
     args.putIfAbsent('historyUrl',
         () => (historyUrl ?? androidHistoryUrl)?.toString() ?? "about:blank");
-    args.putIfAbsent('contextMenu', () => contextMenu?.toMap() ?? {});
-    args.putIfAbsent('windowId', () => windowId);
-    args.putIfAbsent('implementation', () => implementation.toNativeValue());
-    args.putIfAbsent('initialUserScripts',
-        () => initialUserScripts?.map((e) => e.toMap()).toList() ?? []);
-    args.putIfAbsent('pullToRefreshSettings', () => pullToRefreshSettings);
     await _sharedChannel.invokeMethod('open', args);
   }
 
@@ -317,9 +281,79 @@ class InAppBrowser {
   ///- MacOS
   static Future<void> openWithSystemBrowser({required WebUri url}) async {
     assert(url.toString().isNotEmpty);
+
     Map<String, dynamic> args = <String, dynamic>{};
     args.putIfAbsent('url', () => url.toString());
     return await _sharedChannel.invokeMethod('openWithSystemBrowser', args);
+  }
+
+  ///Adds a [InAppBrowserMenuItem] to the menu.
+  ///If the browser is already open,
+  ///it will take effect the next time it is opened.
+  ///
+  ///**Supported Platforms/Implementations**:
+  ///- Android
+  ///- iOS 14.0+
+  void addMenuItem(InAppBrowserMenuItem menuItem) {
+    _menuItems[menuItem.id] = menuItem;
+  }
+
+  ///Adds a list of [InAppBrowserMenuItem] to the menu.
+  ///If the browser is already open,
+  ///it will take effect the next time it is opened.
+  ///
+  ///**Supported Platforms/Implementations**:
+  ///- Android
+  ///- iOS 14.0+
+  void addMenuItems(List<InAppBrowserMenuItem> menuItems) {
+    menuItems.forEach((menuItem) {
+      _menuItems[menuItem.id] = menuItem;
+    });
+  }
+
+  ///Removes the [menuItem] from the list.
+  ///Returns `true` if it was in the list, `false` otherwise.
+  ///If the browser is already open,
+  ///it will take effect the next time it is opened.
+  ///
+  ///**Supported Platforms/Implementations**:
+  ///- Android
+  ///- iOS 14.0+
+  bool removeMenuItem(InAppBrowserMenuItem menuItem) {
+    return _menuItems.remove(menuItem.id) != null;
+  }
+
+  ///Removes a list of [menuItems] from the list.
+  ///If the browser is already open,
+  ///it will take effect the next time it is opened.
+  ///
+  ///**Supported Platforms/Implementations**:
+  ///- Android
+  ///- iOS 14.0+
+  void removeMenuItems(List<InAppBrowserMenuItem> menuItems) {
+    for (final menuItem in menuItems) {
+      removeMenuItem(menuItem);
+    }
+  }
+
+  ///Removes all the menu items from the list.
+  ///If the browser is already open,
+  ///it will take effect the next time it is opened.
+  ///
+  ///**Supported Platforms/Implementations**:
+  ///- Android
+  ///- iOS 14.0+
+  void removeAllMenuItem() {
+    _menuItems.clear();
+  }
+
+  ///Returns `true` if the [menuItem] has been already added, otherwise `false`.
+  ///
+  ///**Supported Platforms/Implementations**:
+  ///- Android native WebView
+  ///- iOS 14.0+
+  bool hasMenuItem(InAppBrowserMenuItem menuItem) {
+    return _menuItems.containsKey(menuItem.id);
   }
 
   ///Displays an [InAppBrowser] window that was opened hidden. Calling this has no effect if the [InAppBrowser] was already visible.
@@ -329,9 +363,10 @@ class InAppBrowser {
   ///- iOS
   ///- MacOS
   Future<void> show() async {
-    this.throwIfNotOpened();
+    assert(_isOpened, 'The browser is not opened.');
+
     Map<String, dynamic> args = <String, dynamic>{};
-    await _channel.invokeMethod('show', args);
+    await _channel?.invokeMethod('show', args);
   }
 
   ///Hides the [InAppBrowser] window. Calling this has no effect if the [InAppBrowser] was already hidden.
@@ -341,9 +376,10 @@ class InAppBrowser {
   ///- iOS
   ///- MacOS
   Future<void> hide() async {
-    this.throwIfNotOpened();
+    assert(_isOpened, 'The browser is not opened.');
+
     Map<String, dynamic> args = <String, dynamic>{};
-    await _channel.invokeMethod('hide', args);
+    await _channel?.invokeMethod('hide', args);
   }
 
   ///Closes the [InAppBrowser] window.
@@ -353,9 +389,10 @@ class InAppBrowser {
   ///- iOS
   ///- MacOS
   Future<void> close() async {
-    this.throwIfNotOpened();
+    assert(_isOpened, 'The browser is not opened.');
+
     Map<String, dynamic> args = <String, dynamic>{};
-    await _channel.invokeMethod('close', args);
+    await _channel?.invokeMethod('close', args);
   }
 
   ///Check if the Web View of the [InAppBrowser] instance is hidden.
@@ -365,29 +402,30 @@ class InAppBrowser {
   ///- iOS
   ///- MacOS
   Future<bool> isHidden() async {
-    this.throwIfNotOpened();
+    assert(_isOpened, 'The browser is not opened.');
+
     Map<String, dynamic> args = <String, dynamic>{};
-    return await _channel.invokeMethod('isHidden', args);
+    return await _channel?.invokeMethod('isHidden', args);
   }
 
   ///Use [setSettings] instead.
   @Deprecated('Use setSettings instead')
   Future<void> setOptions({required InAppBrowserClassOptions options}) async {
-    this.throwIfNotOpened();
+    assert(_isOpened, 'The browser is not opened.');
 
     Map<String, dynamic> args = <String, dynamic>{};
     args.putIfAbsent('settings', () => options.toMap());
-    await _channel.invokeMethod('setSettings', args);
+    await _channel?.invokeMethod('setSettings', args);
   }
 
   ///Use [getSettings] instead.
   @Deprecated('Use getSettings instead')
   Future<InAppBrowserClassOptions?> getOptions() async {
-    this.throwIfNotOpened();
+    assert(_isOpened, 'The browser is not opened.');
     Map<String, dynamic> args = <String, dynamic>{};
 
     Map<dynamic, dynamic>? options =
-        await _channel.invokeMethod('getSettings', args);
+        await _channel?.invokeMethod('getSettings', args);
     if (options != null) {
       options = options.cast<String, dynamic>();
       return InAppBrowserClassOptions.fromMap(options as Map<String, dynamic>);
@@ -404,11 +442,11 @@ class InAppBrowser {
   ///- MacOS
   Future<void> setSettings(
       {required InAppBrowserClassSettings settings}) async {
-    this.throwIfNotOpened();
+    assert(_isOpened, 'The browser is not opened.');
 
     Map<String, dynamic> args = <String, dynamic>{};
     args.putIfAbsent('settings', () => settings.toMap());
-    await _channel.invokeMethod('setSettings', args);
+    await _channel?.invokeMethod('setSettings', args);
   }
 
   ///Gets the current [InAppBrowser] settings. Returns `null` if it wasn't able to get them.
@@ -418,11 +456,12 @@ class InAppBrowser {
   ///- iOS
   ///- MacOS
   Future<InAppBrowserClassSettings?> getSettings() async {
-    this.throwIfNotOpened();
+    assert(_isOpened, 'The browser is not opened.');
+
     Map<String, dynamic> args = <String, dynamic>{};
 
     Map<dynamic, dynamic>? settings =
-        await _channel.invokeMethod('getSettings', args);
+        await _channel?.invokeMethod('getSettings', args);
     if (settings != null) {
       settings = settings.cast<String, dynamic>();
       return InAppBrowserClassSettings.fromMap(
@@ -1321,19 +1360,15 @@ class InAppBrowser {
   ///- iOS
   void onContentSizeChanged(Size oldContentSize, Size newContentSize) {}
 
-  void throwIfAlreadyOpened({String message = ''}) {
-    if (this.isOpened()) {
-      throw InAppBrowserAlreadyOpenedException([
-        'Error: ${(message.isEmpty) ? '' : message + ' '}The browser is already opened.'
-      ]);
-    }
-  }
-
-  void throwIfNotOpened({String message = ''}) {
-    if (!this.isOpened()) {
-      throw InAppBrowserNotOpenedException([
-        'Error: ${(message.isEmpty) ? '' : message + ' '}The browser is not opened.'
-      ]);
-    }
+  ///Disposes the channel and controllers.
+  void _dispose() {
+    _channel?.setMethodCallHandler(null);
+    _channel = null;
+    _webViewController?.dispose();
+    _webViewController = null;
+    pullToRefreshController?.dispose();
+    pullToRefreshController = null;
+    findInteractionController?.dispose();
+    findInteractionController = null;
   }
 }

@@ -1,8 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_inappwebview_fix_iostouchdelay/flutter_inappwebview_fix_iostouchdelay.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'set_service_worker_client.dart';
-import 'should_intercept_request.dart';
+import '../constants.dart';
+import '../util.dart';
+
+part 'set_service_worker_client.dart';
+part 'should_intercept_request.dart';
 
 void main() {
   final shouldSkip = kIsWeb
@@ -11,7 +18,7 @@ void main() {
           TargetPlatform.android,
         ].contains(defaultTargetPlatform);
 
-  group('Service Worker Controller', () {
+  skippableGroup('Service Worker Controller', () {
     shouldInterceptRequest();
     setServiceWorkerClient();
   }, skip: shouldSkip);

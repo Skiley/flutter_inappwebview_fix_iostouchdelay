@@ -17,6 +17,7 @@ public class InAppBrowserWebViewController: NSViewController, InAppBrowserDelega
     
     var window: InAppBrowserWindow?
     var id: String = ""
+    var plugin: InAppWebViewFlutterPlugin?
     var windowId: Int64?
     var webView: InAppWebView?
     var channelDelegate: InAppBrowserChannelDelegate?
@@ -32,7 +33,11 @@ public class InAppBrowserWebViewController: NSViewController, InAppBrowserDelega
     var isHidden = false
 
     public override func loadView() {
-        let channel = FlutterMethodChannel(name: InAppBrowserWebViewController.METHOD_CHANNEL_NAME_PREFIX + id, binaryMessenger: SwiftFlutterPlugin.instance!.registrar!.messenger)
+        guard let plugin = plugin, let registrar = plugin.registrar else {
+            return
+        }
+        
+        let channel = FlutterMethodChannel(name: InAppBrowserWebViewController.METHOD_CHANNEL_NAME_PREFIX + id, binaryMessenger: registrar.messenger)
         channelDelegate = InAppBrowserChannelDelegate(channel: channel)
         
         var userScripts: [UserScript] = []
@@ -41,12 +46,12 @@ public class InAppBrowserWebViewController: NSViewController, InAppBrowserDelega
         }
         
         let preWebviewConfiguration = InAppWebView.preWKWebViewConfiguration(settings: webViewSettings)
-        if let wId = windowId, let webViewTransport = InAppWebView.windowWebViews[wId] {
+        if let wId = windowId, let webViewTransport = plugin.inAppWebViewManager?.windowWebViews[wId] {
             webView = webViewTransport.webView
             webView!.initialUserScripts = userScripts
         } else {
             webView = InAppWebView(id: nil,
-                                   registrar: nil,
+                                   plugin: nil,
                                    frame: .zero,
                                    configuration: preWebviewConfiguration,
                                    userScripts: userScripts)
@@ -58,10 +63,11 @@ public class InAppBrowserWebViewController: NSViewController, InAppBrowserDelega
         
         webView.inAppBrowserDelegate = self
         webView.id = id
+        webView.plugin = plugin
         webView.channelDelegate = WebViewChannelDelegate(webView: webView, channel: channel)
         
         let findInteractionController = FindInteractionController(
-            registrar: SwiftFlutterPlugin.instance!.registrar!,
+            plugin: plugin,
             id: id, webView: webView, settings: nil)
         webView.findInteractionController = findInteractionController
         findInteractionController.prepare()
@@ -94,7 +100,7 @@ public class InAppBrowserWebViewController: NSViewController, InAppBrowserDelega
         progressBar.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 0.0).isActive = true
         progressBar.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: 0.0).isActive = true
         
-        if let wId = windowId, let webViewTransport = InAppWebView.windowWebViews[wId] {
+        if let wId = windowId, let webViewTransport = plugin?.inAppWebViewManager?.windowWebViews[wId] {
             webView?.load(webViewTransport.request)
             channelDelegate?.onBrowserCreated()
         } else {
@@ -257,6 +263,24 @@ public class InAppBrowserWebViewController: NSViewController, InAppBrowserDelega
     @objc public func goBackOrForward(steps: Int) {
         webView?.goBackOrForward(steps: steps)
     }
+    
+    @objc public func onMenuItemClicked(sender: Any?) {
+        var identifier: String?
+        if let sender = sender as? NSMenuItem {
+            identifier = sender.identifier?.rawValue
+        }
+        if identifier == nil, let sender = sender as? NSButton {
+            identifier = sender.identifier?.rawValue
+        }
+        if let identifier = identifier, let window = window {
+            let menuItem = window.menuItems.first { item in
+                return item.id == Int64(identifier)
+            }
+            if let menuItem = menuItem {
+                channelDelegate?.onMenuItemClicked(menuItem: menuItem)
+            }
+        }
+    }
 
     public func setSettings(newSettings: InAppBrowserSettings, newSettingsMap: [String: Any]) {
         window?.setSettings(newSettings: newSettings, newSettingsMap: newSettingsMap)
@@ -304,6 +328,7 @@ public class InAppBrowserWebViewController: NSViewController, InAppBrowserDelega
         webView?.dispose()
         webView = nil
         window = nil
+        plugin = nil
     }
     
     deinit {

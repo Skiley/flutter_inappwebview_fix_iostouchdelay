@@ -1,9 +1,4 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter_inappwebview_fix_iostouchdelay/flutter_inappwebview_fix_iostouchdelay.dart';
-import 'package:flutter_test/flutter_test.dart';
-
-import '../constants.dart';
-import '../util.dart';
+part of 'main.dart';
 
 void openAndClose() {
   final shouldSkip = kIsWeb
@@ -11,7 +6,7 @@ void openAndClose() {
       : ![TargetPlatform.android, TargetPlatform.iOS]
           .contains(defaultTargetPlatform);
 
-  test('open and close', () async {
+  skippableTest('open and close', () async {
     var chromeSafariBrowser = MyChromeSafariBrowser();
     expect(chromeSafariBrowser.isOpened(), false);
 
@@ -45,12 +40,12 @@ void openAndClose() {
             activityButton: ActivityButton(
                 templateImage: UIImage(systemName: "sun.max"),
                 extensionIdentifier:
-                    "com.pichillilorenzo.flutter-inappwebview-example6.test")));
+                    "com.pichillilorenzo.flutter-inappwebview-example7.test")));
     await chromeSafariBrowser.opened.future;
     expect(chromeSafariBrowser.isOpened(), true);
     expect(() async {
       await chromeSafariBrowser.open(url: TEST_CROSS_PLATFORM_URL_1);
-    }, throwsA(isInstanceOf<ChromeSafariBrowserAlreadyOpenedException>()));
+    }, throwsAssertionError);
 
     await expectLater(chromeSafariBrowser.firstPageLoaded.future, completes);
     await chromeSafariBrowser.close();
