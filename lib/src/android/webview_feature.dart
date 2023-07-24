@@ -1,13 +1,15 @@
 import 'dart:async';
+
 import 'package:flutter/services.dart';
-import 'package:flutter_inappwebview/src/cookie_manager.dart';
+import 'package:flutter_inappwebview_fix_iostouchdelay/src/cookie_manager.dart';
 import 'package:flutter_inappwebview_internal_annotations/flutter_inappwebview_internal_annotations.dart';
+
 import '../in_app_webview/in_app_webview_controller.dart';
 import '../in_app_webview/in_app_webview_settings.dart';
+import '../types/user_script_injection_time.dart';
+import '../web_message/main.dart';
 import 'proxy_controller.dart';
 import 'service_worker_controller.dart';
-import '../web_message/main.dart';
-import '../types/user_script_injection_time.dart';
 
 part 'webview_feature.g.dart';
 

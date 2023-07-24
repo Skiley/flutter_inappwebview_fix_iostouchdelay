@@ -1,5 +1,5 @@
 {
-  "name": "flutter_inappwebview",
+  "name": "flutter_inappwebview_fix_iostouchdelay",
   "version": "1.0.0",
   "directories": {
     "example": "example",
