@@ -1,5 +1,9 @@
 # ⚠️ ATTENTION! ⚠️
 
+This package has been discontinued, since this issue has been fixed on [flutter_inappwebview](https://github.com/pichillilorenzo/flutter_inappwebview)'s recent versions.
+
+### flutter_inappwebview_fix_iostouchdelay
+
 This is a fork of [flutter_inappwebview](https://github.com/pichillilorenzo/flutter_inappwebview) library that fixes a touch delay which happens exclusively on iOS devices. Please refer to the official library for documentation, latest updates, etc.
 
 Latest version (0.2.0) is based on flutter_inappwebview **v6.0.0-beta.24+1** (2023-06-12).
